@@ -1,23 +1,36 @@
-"use client"
+"use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
+  const router = useRouter();
+
+  const name = localStorage.getItem("name")
+
+  const handleLogout = () => {
+    localStorage.removeItem("token"); 
+    localStorage.removeItem("name");
+    router.push("/login"); 
+    router.refresh();
+  };
+
   return (
     <nav className="p-4 bg-pink-600 text-white flex justify-between items-center">
-      {/* Logo/Brand Name */}
-      <Link href="/" className="text-xl font-bold">SagaIRishta</Link>
+      <Link href="/" className="text-xl font-bold">
+        SagaIRishta<span className=" text-xs ">.com</span>
+      </Link>
 
-      {/* Right Section */}
       <div className="flex items-center space-x-4">
-     <div className="bg-white w-10 h-10 rounded-full">
-    <span className="text-black font-bold flex justify-center mt-2">RJ</span>
-     </div>
-        {/* Username */}
-        <span className="font-medium">John Doe</span>
+        <div className="bg-white w-10 h-10 rounded-full flex items-center justify-center">
+          <span className="text-pink-600 font-bold">RS</span>
+        </div>
+        <span className="font-medium">{name}</span>
 
-        {/* Logout Button */}
-        <button className="bg-white text-pink-600 px-3 py-1 rounded-md hover:bg-gray-100">
+        <button
+          onClick={handleLogout}
+          className="bg-white text-pink-600 px-3 py-1 rounded-md hover:bg-gray-100"
+        >
           Logout
         </button>
       </div>
