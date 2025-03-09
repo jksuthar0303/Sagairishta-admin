@@ -1,17 +1,24 @@
+
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Navbar() {
   const router = useRouter();
+  const [name, setName] = useState("");
 
-  const name = localStorage.getItem("name")
+  useEffect(() => {
+   
+    const storedName = localStorage.getItem("name");
+    setName(storedName || ""); 
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token"); 
+    localStorage.removeItem("token");
     localStorage.removeItem("name");
-    router.push("/login"); 
+    router.push("/login");
     router.refresh();
   };
 
