@@ -1,76 +1,96 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TrashIcon } from "@heroicons/react/24/outline";
 
 export default function UsersContact() {
-  // Dummy data for contact form submissions
-  const [contacts, setContacts] = useState([
-    {
-      id: 1,
-      name: "Rahul Sharma",
-      email: "rahul.sharma@example.com",
-      phone: "+91 9876543210",
-      message: "I need help regarding my profile verification.I need help regarding my profile verificationI need help regarding my profile verification",
-      date: "2025-03-09",
-    },
-    {
-      id: 2,
-      name: "Priya Mehta",
-      email: "priya.mehta@example.com",
-      phone: "+91 9988776655",
-      message: "Can I change my subscription plan?",
-      date: "2025-03-08",
-    },
-    {
-      id: 3,
-      name: "Amit Verma",
-      email: "amit.verma@example.com",
-      phone: "+91 9123456789",
-      message: "Facing issues while uploading my profile picture.",
-      date: "2025-03-07",
-    },
-  ]);
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleDelete = (id) => {
-    setContacts(contacts.filter((contact) => contact.id !== id));
+  const fetchContacts = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/contact/get-contacts`);
+      const data = await response.json();
+      setContacts(data);
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handleDelete = async (id) => {
+    const isConfirmed = window.confirm("Are you sure you want to delete this contact message?");
+    if (!isConfirmed) return;
+  
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/contact/delete-contact`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        alert("Contact message deleted successfully!");
+        fetchContacts(); // Refresh contacts after deletion
+      } else {
+        alert(data.error || "Failed to delete contact.");
+      }
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
   return (
-    <div className="p-2 h-screen">
-      <ul className="space-y-4 h-full overflow-y-auto scrollbar-hide">
-        {contacts.map((contact) => (
-          <li
-            key={contact.id}
-            className=" p-4 border-b flex justify-between items-start"
-          >
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">{contact.name}</h3>
-              <p className="text-gray-700">
-                <strong>Email:</strong>{" "}
-                <a href={`mailto:${contact.email}`} className="text-pink-600 hover:underline">
-                  {contact.email}
-                </a>
-              </p>
-              <p className="text-gray-700">
-                <strong>Phone:</strong>{" "}
-                <a href={`tel:${contact.phone}`} className="text-pink-600 hover:underline">
-                  {contact.phone}
-                </a>
-              </p>
-              <p className="text-gray-500 text-sm mt-2">Received on: {contact.date}</p>
-            </div>
-            <p className=" w-96 text-gray-600 italic mt-3">"{contact.message}"</p>
-            <button
-              onClick={() => handleDelete(contact.id)}
-              className="text-red-500 hover:text-red-700"
-              title="Delete"
-            >
-              <TrashIcon className="w-6 h-6" />
-            </button>
-          </li>
-        ))}
-      </ul>
+    <div className="p-2 h-screen mb-14">
+      {loading ? (
+        <p className="text-center text-gray-500">Loading...</p>
+      ) : (
+        <ul className="space-y-4 h-full overflow-y-auto scrollbar-hide">
+          {contacts.length > 0 ? (
+            contacts.map((contact) => (
+              <li key={contact._id} className="p-4 border-b flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">{contact.name}</h3>
+                  <p className="text-gray-700">
+                    <strong>Email:</strong>{" "}
+                    <a href={`mailto:${contact.email}`} className="text-pink-600 hover:underline">
+                      {contact.email}
+                    </a>
+                  </p>
+                  <p className="text-gray-700">
+                    <strong>Phone:</strong>{" "}
+                    <a href={`tel:${contact.phone}`} className="text-pink-600 hover:underline">
+                      {contact.phone}
+                    </a>
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    Received on: {new Date(contact.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <p className="w-96 text-gray-600 italic mt-3">"{contact.message}"</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(contact._id);
+                  }}
+                  className="text-red-500 hover:text-red-700"
+                  title="Delete"
+                >
+                  <TrashIcon className="w-6 h-6" />
+                </button>
+              </li>
+            ))
+          ) : (
+            <p className="text-center text-gray-500">No contact messages found.</p>
+          )}
+        </ul>
+      )}
     </div>
   );
 }

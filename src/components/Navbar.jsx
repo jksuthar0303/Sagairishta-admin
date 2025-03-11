@@ -25,7 +25,7 @@ export default function Navbar() {
   return (
     <nav className="p-4 bg-pink-600 text-white flex justify-between items-center">
       <Link href="/" className="text-xl font-bold">
-        SagaIRishta<span className=" text-xs ">.com</span>
+        Sagairishta<span className=" text-xs ">.com</span>
       </Link>
 
       <div className="flex items-center space-x-4">

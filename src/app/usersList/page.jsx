@@ -6,30 +6,18 @@ import {
   requestNotificationPermission,
   subscribeUser,
 } from "../../utils/registerServiceWorker";
-
-const dummyUsers = [
-    { id: 1, name: "John Doe", email: "john@example.com", location: "New York, USA", age: 30, gender: "male", createdAt: "2024-03-01T10:30:00Z" },
-    { id: 2, name: "Jane Smith", email: "jane@example.com", location: "Los Angeles, USA", age: 28, gender: "female", createdAt: "2024-02-25T14:15:00Z" },
-    { id: 3, name: "Michael Brown", email: "michael@example.com", location: "Chicago, USA", age: 35, gender: "male", createdAt: "2024-01-10T08:45:00Z" },
-    { id: 4, name: "Emily Davis", email: "emily@example.com", location: "Houston, USA", age: 26, gender: "female", createdAt: "2024-02-05T12:20:00Z" },
-    { id: 5, name: "Robert Wilson", email: "robert@example.com", location: "San Francisco, USA", age: 32, gender: "male", createdAt: "2024-01-20T09:40:00Z" },
-    { id: 6, name: "Sophia Johnson", email: "sophia@example.com", location: "Miami, USA", age: 29, gender: "female", createdAt: "2024-03-03T15:10:00Z" },
-    { id: 7, name: "David Lee", email: "david@example.com", location: "Seattle, USA", age: 27, gender: "male", createdAt: "2024-02-12T11:55:00Z" },
-    { id: 8, name: "Olivia Martinez", email: "olivia@example.com", location: "Denver, USA", age: 31, gender: "female", createdAt: "2024-01-30T13:25:00Z" },
-    { id: 9, name: "James Taylor", email: "james@example.com", location: "Dallas, USA", age: 34, gender: "male", createdAt: "2024-02-08T16:45:00Z" },
-    { id: 10, name: "Isabella Thomas", email: "isabella@example.com", location: "Boston, USA", age: 25, gender: "female", createdAt: "2024-03-06T08:30:00Z" },
-  ];
-  
+import { useRouter } from "next/navigation";
 
 
-  
 
 const UserLists = () => {
-  const [users, setUsers] = useState(dummyUsers);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const totalMale = users.filter(user => user.gender === "male").length;
-const totalFemale = users.filter(user => user.gender === "female").length;
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const totalMale = users.filter((user) => user.gender === "Male").length;
+  const totalFemale = users.filter((user) => user.gender === "Female").length;
+
+
   useEffect(() => {
     handleNotificationSubscription();
   }, []);
@@ -39,72 +27,137 @@ const totalFemale = users.filter(user => user.gender === "female").length;
     await registerServiceWorker();
     await subscribeUser();
   };
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/users/get-all-users`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`, 
+            },
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch users");
+        }
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const openModal = (user) => {
-    setSelectedUser(user);
-    setIsModalOpen(true);
-  };
+    fetchUsers();
+  }, []);
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedUser(null);
+  const handleDelete = async (id) => {
+    const isConfirmed = window.confirm("Are you sure you want to remove this User?");
+    
+    if (!isConfirmed) return; 
+    try {
+      const apiUrl =`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/delete-user`;
+  
+      const response = await fetch(apiUrl, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId : id }), 
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        alert("User deleted successfully!");
+  
+        
+        setUsers((prevUsers) => prevUsers.filter(user => user._id !== id));
+        
+      } else {
+        alert(data.message || "Failed to delete User.");
+      }
+    } catch (error) {
+      console.error("Error deleting User:", error);
+    }
   };
+  
 
   return (
     <div className="flex flex-col items-center h-screen w-full ">
-    <h1 className="text-4xl font-extrabold text-pink-600 mt-6">
-    Total Users: {users.length}
-  </h1>
-  <div className="flex space-x-6 mt-2">
-    <p className="text-lg font-semibold text-blue-500">👨 Male: {totalMale}</p>
-    <p className="text-lg font-semibold text-pink-500">👩 Female: {totalFemale}</p>
-  </div>
-      <div className="w-full p-2 mt-6 h-[80vh] overflow-y-auto scrollbar-hide">
-        {users.length === 0 ? (
-          <p className="text-center text-gray-500">No users found.</p>
-        ) : (
-          <ul className="space-y-4">
-            {users.map((user) => (
-              <li
-                key={user.id}
-                className="flex justify-between items-center p-4 border-b border-gray-200 cursor-pointer bg-white hover:bg-pink-50 transition"
-                onClick={() => openModal(user)}
-              >
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    {user.name}
-                  </h2>
-                  <p className="text-gray-600">{user.email}</p>
-                  <p className="text-gray-500 text-sm">
-                    Created At: {new Date(user.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <TrashIcon className="w-6 h-6 text-red-500 hover:text-red-600 transition" />
-              </li>
-            ))}
-          </ul>
-        )}
+      <h1 className="text-4xl font-extrabold text-pink-600 mt-6">
+        Total Users: {users.length}
+      </h1>
+      <div className="flex space-x-6 mt-2">
+        <p className="text-lg font-semibold text-blue-500">
+          👨 Male: {totalMale}
+        </p>
+        <p className="text-lg font-semibold text-pink-500">
+          👩 Female: {totalFemale}
+        </p>
       </div>
 
-      {/* Modal */}
-      {isModalOpen && selectedUser && (
-        <div className="fixed inset-0 flex justify-center items-center bg-[rgba(0,0,0,0.4)] backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md border-t-4 border-pink-600">
-            <h2 className="text-2xl font-bold text-pink-600">
-              {selectedUser.name}
-            </h2>
-            <p className="text-gray-700 mt-2">📧 {selectedUser.email}</p>
-            <p className="text-gray-700 mt-2">📍 {selectedUser.location}</p>
-            <p className="text-gray-700 mt-2">🎂 Age: {selectedUser.age}</p>
-            <button
-              className="mt-6 bg-pink-600 text-white px-5 py-2 rounded-lg hover:bg-pink-700 transition"
-              onClick={closeModal}
-            >
-              Close
-            </button>
+      <div className="w-full p-2 mt-6 h-[80vh] overflow-y-auto scrollbar-hide">
+  {loading ? (
+    <p className="text-center text-gray-500">Loading users...</p>
+  ) : users.length === 0 ? (
+    <p className="text-center text-gray-500">No users found.</p>
+  ) : (
+    <ul className="space-y-4">
+      {users.map((user) => (
+        <li
+          key={user._id}
+          className="flex justify-between items-center p-4 border-b border-gray-200 cursor-pointer bg-white hover:bg-pink-50 transition"
+          onClick={() => router.push(`/user/${user._id}`)}
+        >
+          <div className="flex items-center space-x-4">
+            {/* Profile Picture */}
+            <img
+              src={user.profilePic || "/default-avatar.png"}
+              alt={user.fullName}
+              className="w-20 h-20 rounded-full border border-gray-300 object-cover"
+            />
+
+            {/* User Details */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">
+                {user.fullName}
+              </h2>
+              <p className="text-gray-600">{user.email}</p>
+              <p className="text-gray-500 text-sm">📞 {user.mobile || "N/A"}</p>
+              <p className="text-gray-500 text-sm">
+                🌍 {user.state}, {user.district}
+              </p>
+              <p className="text-gray-500 text-sm">
+                🕒 Created At:{" "}
+                {user.createdAt
+                  ? new Date(user.createdAt).toLocaleDateString()
+                  : "N/A"}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+
+          {/* Delete Icon */}
+          <button
+  className="p-2 rounded hover:bg-gray-200 transition"
+  onClick={(e) => {
+    e.preventDefault(); 
+    e.stopPropagation(); 
+    handleDelete(user._id);
+  }}
+>
+  <TrashIcon className="w-6 h-6 text-red-500 hover:text-red-600 transition" />
+</button>
+
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
+     
     </div>
   );
 };
